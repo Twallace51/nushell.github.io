@@ -62,23 +62,23 @@ A string of characters that represents text.
 There are a few ways these can be constructed:
 
 - Double quotes
-```
+```nu
 "Line1\nLine2\n"
 ```
 
 - Single quotes 
-```
+```nu
 'She said "Nushell is the future"
 ```
 
 - Dynamic string interpolation
-```
+```nu
 $"6 x 7 = (6 * 7)"          # > 6 x 7 = 42
 ```
-```
+```nu
 ls ~ | each { |it| $"($it.name) is ($it.size)" }
 ```
-```
+```txt
 ╭───┬──────────────────────╮  
 │ 0 │ Desktop is 4.0 KiB   │  
 │ 1 │ Documents is 4.0 KiB │  
@@ -96,10 +96,10 @@ ls ~ | each { |it| $"($it.name) is ($it.size)" }
 print hello         # > hello
 ```
 
-```
+```nu
 [foo bar baz]      
 ```
-```
+```txt
 ╭───┬─────╮
 │ 0 │ foo │
 │ 1 │ bar │
@@ -134,15 +134,15 @@ Dates are in three forms, based on the RFC 3339 standard:
 
 - A date:
 ```
-2022-02-02           # > Wed, 2 Feb 2022 00:00:00 +0000 (2 years ago)
+2022-02-02                  # > Wed, 2 Feb 2022 00:00:00 +0000 (2 years ago)
 ```
 - A date and time (in GMT):
 ```
-2022-02-02T14:30:00
+2022-02-02T14:30:00         # > Wed, 2 Feb 2022 14:30:00 +0000 (2 years ago)
 ```
 - A date and time with timezone:
 ```
-2022-02-02T14:30:00+05:00
+2022-02-02T14:30:00+05:00   # > Wed, 2 Feb 2022 14:30:00 +0500 (2 years ago)
 ```
 ## Durations
 
@@ -282,30 +282,31 @@ Incomplete bytes will be left-padded with zeros.
 
 ## Structured data
 
-Structured data is based on the concepts of:
-records - collection of keys (type string) and corresponding values (type any)
-tables - collection of records, each also with a unique index (type int)
-lists - collection of unique indexes (type int) and corresponding values (type any)
+Structured data is one of the following basic data types:
+- record - collection of keys (type string) and corresponding values (type any)
+- list - collection of unique indexes (type int) and corresponding values (type any)
+- table - collection of records, each also with a unique index (type int)
+
+Note: (type any) includes structered data values, see below for examples.
 
 ### Records
 
-Records hold key:value pairs, which associate string keys with various data values.  
-Record syntax is very similar to objects in JSON.  
+Records hold key:value pairs, which associate keys with corresponding values (similar to objects in JSON).  
 
-Records frequently have many keys, so records are printed up-down.
-Note, commas are _not_ required to separate key:values, if Nushell can easily distinguish them!
+Enter following to create a simple record...
 
 ```nu
 {name: sam rank: 10}
 ```
-```
+```txt
 ╭──────┬─────╮
 │ name │ sam │
 │ rank │ 10  │
 ╰──────┴─────╯
 ```
+Note, commas are _not_ required to separate key:values, if NuShell can easily distinguish them!
 
-A record can represent a single row of a table (see below),  if the record's key names and table column names (fields) are the same.
+A record can represent a single row of a table (see below),  where the record's key names become the table column names (fields).
 
 This means that any command that can operate on a table's rows can _also_ operate on records.  
 
@@ -314,20 +315,20 @@ For instance, [`insert`](/commands/docs/insert.md), which adds data to table row
 ```nu
 {name: sam rank: 10} | insert age 25
 ```
-```
+```txt
 ╭──────┬─────╮
 │ name │ sam │
 │ rank │ 10  │
 │ age  │ 25  │
 ╰──────┴─────╯
-
+```
 You can also manage records by converting them into tables first.  
 For example: 
 
 ```nu
 {name: sam, rank: 10} | transpose key value
 ```
-```
+```txt
 ╭───┬──────┬───────╮
 │ # │ key  │ value │
 ├───┼──────┼───────┤
@@ -337,26 +338,26 @@ For example:
 ```
 Note: The index field is added automatically.
 
-Accessing a records' data is done by placing a `.` before a string, which is usually a bare string:
+Accessing a records' data is done by placing a `.` before a string, which can be a bare string:
 
 ```nu
 {name: sam rank: 10}.rank         # > 10
 ```
 
 However, if a record has a key name that can't be expressed as a bare string, 
-or resembles an integer (see lists, below), you'll need to use more explicit string syntax.  
+or resembles an integer (see lists, below), you'll need to use a more explicit string syntax.  
 For example,  
 ```nu
-{"1":true "2":false}."2"       # > false
+{"1":true "2":false}."2"          # > false
 ```
 
 To make a copy of a record with new fields, you can use the [spread operator](/book/operators#spread-operator) (`...`):
 
 ```nu
-let data = { name: alice, age: 50 }
+let $data = { name: alice, age: 50 }
 { ...$data, hobby: cricket }
 ```
-```
+```txt
 ╭───────┬─────────╮
 │ name  │ alice   │
 │ age   │ 50      │
@@ -373,7 +374,7 @@ For example:
 ```nu
 [bell book candle pencil] 
 ```
-```
+```txt
 ╭───┬────────╮
 │ 0 │ sam    │
 │ 1 │ fred   │
@@ -391,7 +392,7 @@ from all the items in the original list ($it), which partially match the given p
 ```nu
  [bell book candle pencil] | where ($it =~ 'b')
 ```
-```
+```txt
 ╭───┬──────╮
 │ 0 │ bell │
 │ 1 │ book │
@@ -407,7 +408,9 @@ Accessing lists' data is done by placing a `.` before a bare integer:
 To get a sub-list from a list, you can use the [`range`](/commands/docs/range.md) command:
 
 ```nu
-> [a b c d e f] | range 1..3
+[a b c d e f] | range 1..3
+```
+```txt
 ╭───┬───╮
 │ 0 │ b │
 │ 1 │ c │
@@ -422,7 +425,7 @@ you can use the [spread operator](/book/operators#spread-operator) (`...`):
 let x = [1 2]
 [...$x 3 ...(4..7 | take 2)]
 ```
-```
+```txt
 ╭───┬───╮
 │ 0 │ 1 │
 │ 1 │ 2 │
@@ -444,7 +447,7 @@ by first providing a list of column names (type string - also known as fields), 
 ```nu
 [[column1, column2]; [Value1, Value2] [Value3, Value4]]
 ```
-```
+```txt
 ╭───┬─────────┬─────────╮
 │ # │ column1 │ column2 │
 ├───┼─────────┼─────────┤
@@ -458,7 +461,7 @@ You can also create a table as a list of records, JSON-style:
 ```nu
 [{name: sam, rank: 10}, {name: bob, rank: 7}]
 ```
-```
+```txt
 ╭───┬──────┬──────╮
 │ # │ name │ rank │
 ├───┼──────┼──────┤
@@ -477,7 +480,7 @@ But when used on a table (a list of records), it extracts a record:
 ```nu
 [{x:12, y:5}, {x:3, y:6}] | get 0
 ```
-```
+```txt
 ╭───┬────╮
 │ x │ 12 │
 │ y │ 5  │
@@ -489,7 +492,7 @@ This is true regardless of which table syntax you use:
 ```nu
 [[x,y];[12,5],[3,6]] | get 0
 ```
-```
+```txt
 ╭───┬────╮
 │ x │ 12 │
 │ y │ 5  │
@@ -510,7 +513,7 @@ Moreover, you can also access entire columns of a table by name, to obtain lists
 ```nu
 [{x:12 y:5} {x:4 y:7} {x:2 y:2}].x
 ```
-```
+```txt
 ╭───┬────╮
 │ 0 │ 12 │
 │ 1 │  4 │
@@ -524,7 +527,7 @@ To choose columns from a table while leaving it as a table, you'll commonly use 
 ```nu
 [{x:0 y:5 z:1} {x:4 y:7 z:3} {x:2 y:2 z:0}] | select y z
 ```
-```
+```txt
 ╭───┬───┬───╮
 │ # │ y │ z │
 ├───┼───┼───┤
@@ -539,7 +542,7 @@ To get specific rows from a table, you'll commonly use the [`select`](/commands/
 ```nu
 [{x:0 y:5 z:1} {x:4 y:7 z:3} {x:2 y:2 z:0}] | select 1 2
 ```
-```
+```txt
 ╭───┬───┬───┬───╮
 │ # │ x │ y │ z │
 ├───┼───┼───┼───┤
@@ -556,7 +559,7 @@ To suppress these errors, you can add `?` to a cell path member to mark it as _o
 ```nu
 [{foo: 123}, {}].foo?
 ```
-```
+```txt
 ╭───┬─────╮
 │ 0 │ 123 │
 │ 1 │     │
@@ -586,7 +589,9 @@ do $greet "Julian"
 Closures are a useful way to represent code that can be executed on each row of data.  
 It is idiomatic (customary) to use `$it` as a parameter name in [`each`](/commands/docs/each.md) blocks, but not required;
 
-`each { |x| print $x }` works the same way as `each { |it| print $it }`
+`each { |x| print $x }`   
+works the same way as   
+`each { |it| print $it }`  
 
 ## Blocks
 
@@ -624,7 +629,7 @@ Example: create a table with null in 1.a
 ```nu
 let demo = [{a:1 b:2} {b:1}]
 ```
-```
+```txt
 ╭───┬────┬───╮
 │ # │ a  │ b │
 ├───┼────┼───┤
@@ -633,10 +638,10 @@ let demo = [{a:1 b:2} {b:1}]
 ╰───┴────┴───╯
 ```
 Then try to access 1.a
-```
+```nu
 $demo.1.a
 ```
-```
+```txt
 Error: nu::shell::column_not_found
 
   × Cannot find column

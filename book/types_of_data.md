@@ -84,12 +84,12 @@ ls ~ | each { |it| $"($it.name) is ($it.size)" }
 │ 1 │ Documents is 4.0 KiB │  
 │ 2 │ Downloads is 4.0 KiB │  
 │ 3 │ Music is 4.0 KiB     │  
-│ 4 │ Pictures is 4.0 KiB  │
+│ 4 │ Pictures is 4.0 KiB  │  
 │ 5 │ Public is 4.0 KiB    │  
-│ 6 │ Templates is 4.0 KiB │
+│ 6 │ Templates is 4.0 KiB │  
 │ 7 │ Videos is 4.0 KiB    │  
-│ 8 │ test.sh is 40 B      │
-╰───┴──────────────────────╯
+│ 8 │ test.sh is 40 B      │  
+╰───┴──────────────────────╯  
 ```
 - Bare strings
 ```
@@ -97,7 +97,7 @@ print hello         # > hello
 ```
 
 ```nu
-[foo bar baz]      
+[foo bar baz]       # > a list of bare strings   foo bar baz 
 ```
 ```txt
 ╭───┬─────╮
@@ -106,7 +106,6 @@ print hello         # > hello
 │ 2 │ baz │
 ╰───┴─────╯
 ```
-
 
 See [Working with strings](working_with_strings.md) and [Handling Strings](https://www.nushell.sh/book/loading_data.html#handling-strings) for details.
 
@@ -284,16 +283,30 @@ Incomplete bytes will be left-padded with zeros.
 
 Structured data is one of the following basic data types:
 - record - collection of keys (type string) and corresponding values (type any)
-- list - collection of unique indexes (type int) and corresponding values (type any)
-- table - collection of records, each also with a unique index (type int)
+- list - collection of unique indexes (type int >= 0) and corresponding values (type any)
+- table - collection of records with same keys, each also with a unique index (type int)
 
-Note: (type any) includes structered data values, see below for examples.
+Note: (type any) includes structured data types, for example:
+
+Entering the following in a nu terminal shows a record with many keys,  
+whose values include lists, tables, bare strings and closures (lambda functions)
+```nu
+$env
+```
+Entering following for key PATH,  will show a list of system pathnames
+```nu
+$env.PATH
+```
+Entering following key, will show a complex table
+```nu
+$env.config.menus
+```
 
 ### Records
 
-Records hold key:value pairs, which associate keys with corresponding values (similar to objects in JSON).  
+Records hold key:value pairs, which associate keys (strings) with corresponding values (any type - similar to objects in JSON).  
 
-Enter following to create a simple record...
+Create a simple record by entering following in a nushell terminal...
 
 ```nu
 {name: sam rank: 10}
@@ -304,13 +317,11 @@ Enter following to create a simple record...
 │ rank │ 10  │
 ╰──────┴─────╯
 ```
-Note, commas are _not_ required to separate key:values, if NuShell can easily distinguish them!
+Note:
+- commas are _not_ required to separate key:values, if NuShell can easily distinguish them!
+- output has no index column,  nor column names (table fields)
 
-A record can represent a single row of a table (see below),  where the record's key names become the table column names (fields).
-
-This means that any command that can operate on a table's rows can _also_ operate on records.  
-
-For instance, [`insert`](/commands/docs/insert.md), which adds data to table rows, can be used with records:
+Add a new key:value to a record  using [`insert`](/commands/docs/insert.md)
 
 ```nu
 {name: sam rank: 10} | insert age 25
@@ -322,6 +333,10 @@ For instance, [`insert`](/commands/docs/insert.md), which adds data to table row
 │ age  │ 25  │
 ╰──────┴─────╯
 ```
+Note: 
+- Since a table is essentially an indexed list of records with the same keys, 
+ [`insert`](/commands/docs/insert.md) can also be used to add a new column and values to a table.
+
 You can also manage records by converting them into tables first.  
 For example: 
 
@@ -336,22 +351,41 @@ For example:
 │ 1 │ rank │   10  │
 ╰───┴──────┴───────╯
 ```
-Note: The index field is added automatically.
+Note: 
+- the keys become the column headers (fields)
+- The index field and values are added automatically.
 
-Accessing a records' data is done by placing a `.` before a string, which can be a bare string:
+Accessing a records' data is done by placing a `.` before a key's name...
 
 ```nu
 {name: sam rank: 10}.rank         # > 10
 ```
-
+Note:
+- the given key can be written in any of the accepted forms (see above), even as a bare string.
 However, if a record has a key name that can't be expressed as a bare string, 
 or resembles an integer (see lists, below), you'll need to use a more explicit string syntax.  
-For example,  
+For example,  the key 2 can not be a bare string.
 ```nu
 {"1":true "2":false}."2"          # > false
 ```
-
-To make a copy of a record with new fields, you can use the [spread operator](/book/operators#spread-operator) (`...`):
+- For a real example, the record $env has a key,  whose value is a list
+```nu
+$env.PATH
+```
+ ```text
+╭───┬────────────────────────╮
+│ 0 │ /home/usern/.venv/bin  │
+│ 1 │ /home/usern/.local/bin │
+│ 2 │ /usr/local/sbin        │
+│ 3 │ /usr/local/bin         │
+│ 4 │ /usr/bin               │
+│ 5 │ /usr/bin/site_perl     │
+│ 6 │ /usr/bin/vendor_perl   │
+│ 7 │ /usr/bin/core_perl     │
+╰───┴────────────────────────╯
+```
+  
+To make a copy of a record with new keys:values, you can use the [spread operator](/book/operators#spread-operator) (`...`):
 
 ```nu
 let $data = { name: alice, age: 50 }
@@ -367,26 +401,25 @@ let $data = { name: alice, age: 50 }
 
 ### Lists
 
-Lists are ordered sequences of data values.  
-List syntax is very similar to arrays in JSON.  
+Lists are ordered sequences of values, wose list syntax is very similar to arrays in JSON.  
 For example:
 
 ```nu
 [bell book candle pencil] 
 ```
 ```txt
-╭───┬────────╮
-│ 0 │ sam    │
-│ 1 │ fred   │
-│ 2 │ george |
-| 3 | pencil │
+╭───┬────────╮  
+│ 0 │ bell   │  
+│ 1 │ book   │  
+│ 2 │ candle |  
+| 3 | pencil │  
 ╰───┴────────╯
 ```
-Note, commas are _not_ required to separate values if Nushell can easily distinguish them!
+Note:
+- commas are _not_ required to separate values if Nushell can easily distinguish them!
+- the indexes were added automatically
 
-You can think of a list as essentially being a "one-column table" (with no column name).   
-Thus, any command which can operate on a column can _also_ operate on a list.   
-For instance, [`where`](/commands/docs/where.md) can be used to create a new list   
+The command [`where`](/commands/docs/where.md) can be used to create a new (filtered) list,   
 from all the items in the original list ($it), which partially match the given pattern (=~ 'b')
 
 ```nu
@@ -398,11 +431,14 @@ from all the items in the original list ($it), which partially match the given p
 │ 1 │ book │
 ╰───┴──────╯
 ```
+Note:
+- Since a list as essentially a "one-column table",
+the command [`where`](/commands/docs/where.md) can also be used to create a new (filtered) table.  
 
-Accessing lists' data is done by placing a `.` before a bare integer:
+Accessing lists' data is done by placing a `.` before an index (bare integer):
 
 ```nu
-[a b c].1     # > b
+[bell book candle pencil].3     # > pencil
 ```
 
 To get a sub-list from a list, you can use the [`range`](/commands/docs/range.md) command:
@@ -437,12 +473,17 @@ let x = [1 2]
 
 ### Tables
 
-The table is a core data structure in Nushell.  
-As you run commands, you'll see that many of them return tables as output.  
-A table has both rows and columns.
+The table is essentially an indexed list of records with the same keys.  
+The columns are named with the record key names (fields),  
+and the rows are the index and key values of each record.  
 
-We can create our own tables similarly to how we create a list,  
-by first providing a list of column names (type string - also known as fields),  followed by lists of data for each row.  
+Note: many of the commands that manage lists and records,  can also be used with tables.
+For examples:
+- [`where`](/commands/docs/where.md)
+- [`insert`](/commands/docs/insert.md)
+
+We can create our own table by first providing the column names (type string), also known as fields,   
+followed by values for each column and row.  
 
 ```nu
 [[column1, column2]; [Value1, Value2] [Value3, Value4]]
@@ -455,49 +496,59 @@ by first providing a list of column names (type string - also known as fields), 
 │ 1 │ Value3  │ Value4  │
 ╰───┴─────────┴─────────╯
 ```
-
 You can also create a table as a list of records, JSON-style:
 
 ```nu
-[{name: sam, rank: 10}, {name: bob, rank: 7}]
+[{column1: Value1, column2: Value2}, {column1: Value3, column2: Value4}]
 ```
 ```txt
-╭───┬──────┬──────╮
-│ # │ name │ rank │
-├───┼──────┼──────┤
-│ 0 │ sam  │   10 │
-│ 1 │ bob  │    7 │
-╰───┴──────┴──────╯
+╭───┬─────────┬─────────╮
+│ # │ column1 │ column2 │
+├───┼─────────┼─────────┤
+│ 0 │ Value1  │ Value2  │
+│ 1 │ Value3  │ Value4  │
+╰───┴─────────┴─────────╯
 ```
 Note: the record keys become the table's fields.
 
-Note
-Internally, tables are simply **lists of records**.  
-This means that any command which extracts or isolates a specific row of a table will produce a record.  
-For example, `get 0`, when used on a list, extracts the first value.  
-But when used on a table (a list of records), it extracts a record:
+You can extract a record from a table by using [get](https://www.nushell.sh/commands/docs/get.html) and row index
 
 ```nu
-[{x:12, y:5}, {x:3, y:6}] | get 0
+[{column1: Value1, column2: Value2}, {column1: Value3, column2: Value4}] | get 0
 ```
 ```txt
-╭───┬────╮
-│ x │ 12 │
-│ y │ 5  │
-╰───┴────╯
+╭─────────┬────────╮
+│ column1 │ Value1 │
+│ column2 │ Value2 │
+╰─────────┴────────╯
 ```
-
-This is true regardless of which table syntax you use:
+You can also use the alternate table syntax:
 
 ```nu
-[[x,y];[12,5],[3,6]] | get 0
+[[column1, column2]; [Value1, Value2] [Value3, Value4]] | get 0
 ```
 ```txt
-╭───┬────╮
-│ x │ 12 │
-│ y │ 5  │
-╰───┴────╯
+╭─────────┬────────╮
+│ column1 │ Value1 │
+│ column2 │ Value2 │
+╰─────────┴────────╯
 ```
+
+Note: `get 0`, when used on a list, extracts the first value.  
+
+You can extract a list from a table by using [get](https://www.nushell.sh/commands/docs/get.html) and column name
+
+```nu
+[{column1: Value1, column2: Value2}, {column1: Value3, column2: Value4}] | get column2
+```
+```txt
+╭───┬────────╮
+│ 0 │ Value2 │
+│ 1 │ Value4 │
+╰───┴────────╯
+```
+Note: get column on a list will cause an error.
+
 
 ### Cell Paths
 
@@ -521,7 +572,8 @@ Moreover, you can also access entire columns of a table by name, to obtain lists
 ╰───┴────╯
 ```
 
-Of course, these resulting lists don't have the column names of the table.  
+Note: The resulting lists don't have the column name from the table.  
+
 To choose columns from a table while leaving it as a table, you'll commonly use the [`select`](/commands/docs/select.md) command with column names:
 
 ```nu
